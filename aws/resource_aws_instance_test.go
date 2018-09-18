@@ -1523,6 +1523,7 @@ func TestAccAWSInstance_getPasswordData_trueToFalse(t *testing.T) {
 func TestAccAWSInstance_creditSpecification_unspecifiedDefaultsToStandard(t *testing.T) {
 	var instance ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1530,7 +1531,7 @@ func TestAccAWSInstance_creditSpecification_unspecifiedDefaultsToStandard(t *tes
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_unspecified(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_unspecified(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(resName, &instance),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
@@ -1542,8 +1543,9 @@ func TestAccAWSInstance_creditSpecification_unspecifiedDefaultsToStandard(t *tes
 }
 
 func TestAccAWSInstance_creditSpecification_standardCpuCredits(t *testing.T) {
-	var instance ec2.Instance
+	var first, second ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1551,9 +1553,17 @@ func TestAccAWSInstance_creditSpecification_standardCpuCredits(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &instance),
+					testAccCheckInstanceExists(resName, &first),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_unspecified(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &second),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
 				),
@@ -1563,8 +1573,9 @@ func TestAccAWSInstance_creditSpecification_standardCpuCredits(t *testing.T) {
 }
 
 func TestAccAWSInstance_creditSpecification_unlimitedCpuCredits(t *testing.T) {
-	var instance ec2.Instance
+	var first, second ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1572,9 +1583,17 @@ func TestAccAWSInstance_creditSpecification_unlimitedCpuCredits(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &instance),
+					testAccCheckInstanceExists(resName, &first),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_unspecified(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &second),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
 				),
@@ -1584,9 +1603,9 @@ func TestAccAWSInstance_creditSpecification_unlimitedCpuCredits(t *testing.T) {
 }
 
 func TestAccAWSInstance_creditSpecification_updateCpuCredits(t *testing.T) {
-	var before ec2.Instance
-	var after ec2.Instance
+	var first, second, third ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1594,19 +1613,27 @@ func TestAccAWSInstance_creditSpecification_updateCpuCredits(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &before),
+					testAccCheckInstanceExists(resName, &first),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
 				),
 			},
 			{
-				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &after),
+					testAccCheckInstanceExists(resName, &second),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &third),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
 				),
 			},
 		},
@@ -1614,9 +1641,9 @@ func TestAccAWSInstance_creditSpecification_updateCpuCredits(t *testing.T) {
 }
 
 func TestAccAWSInstance_creditSpecification_removalReturnsStandard(t *testing.T) {
-	var before ec2.Instance
-	var after ec2.Instance
+	var first, second ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1624,17 +1651,17 @@ func TestAccAWSInstance_creditSpecification_removalReturnsStandard(t *testing.T)
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &before),
+					testAccCheckInstanceExists(resName, &first),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
 				),
 			},
 			{
-				Config: testAccInstanceConfig_creditSpecification_unspecified(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_unspecified(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &after),
+					testAccCheckInstanceExists(resName, &second),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
 				),
@@ -1646,6 +1673,7 @@ func TestAccAWSInstance_creditSpecification_removalReturnsStandard(t *testing.T)
 func TestAccAWSInstance_creditSpecification_isNotAppliedToNonBurstable(t *testing.T) {
 	var instance ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1653,7 +1681,7 @@ func TestAccAWSInstance_creditSpecification_isNotAppliedToNonBurstable(t *testin
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_isNotAppliedToNonBurstable(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_isNotAppliedToNonBurstable(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(resName, &instance),
 				),
@@ -1665,6 +1693,7 @@ func TestAccAWSInstance_creditSpecification_isNotAppliedToNonBurstable(t *testin
 func TestAccAWSInstance_creditSpecificationT3_unspecifiedDefaultsToUnlimited(t *testing.T) {
 	var instance ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1672,7 +1701,7 @@ func TestAccAWSInstance_creditSpecificationT3_unspecifiedDefaultsToUnlimited(t *
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_unspecified_t3(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_unspecified_t3(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(resName, &instance),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
@@ -1684,8 +1713,9 @@ func TestAccAWSInstance_creditSpecificationT3_unspecifiedDefaultsToUnlimited(t *
 }
 
 func TestAccAWSInstance_creditSpecificationT3_standardCpuCredits(t *testing.T) {
-	var instance ec2.Instance
+	var first, second ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1693,9 +1723,17 @@ func TestAccAWSInstance_creditSpecificationT3_standardCpuCredits(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits_t3(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits_t3(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &instance),
+					testAccCheckInstanceExists(resName, &first),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_unspecified_t3(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &second),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
 				),
@@ -1705,8 +1743,9 @@ func TestAccAWSInstance_creditSpecificationT3_standardCpuCredits(t *testing.T) {
 }
 
 func TestAccAWSInstance_creditSpecificationT3_unlimitedCpuCredits(t *testing.T) {
-	var instance ec2.Instance
+	var first, second ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1714,9 +1753,17 @@ func TestAccAWSInstance_creditSpecificationT3_unlimitedCpuCredits(t *testing.T) 
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits_t3(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits_t3(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resName, &instance),
+					testAccCheckInstanceExists(resName, &first),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_unspecified_t3(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &second),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
 				),
@@ -1726,9 +1773,9 @@ func TestAccAWSInstance_creditSpecificationT3_unlimitedCpuCredits(t *testing.T) 
 }
 
 func TestAccAWSInstance_creditSpecificationT3_updateCpuCredits(t *testing.T) {
-	var before ec2.Instance
-	var after ec2.Instance
+	var first, second, third ec2.Instance
 	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -1736,7 +1783,45 @@ func TestAccAWSInstance_creditSpecificationT3_updateCpuCredits(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits_t3(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits_t3(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &first),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits_t3(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &second),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits_t3(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &third),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_creditSpecification_standardCpuCredits_t2Tot3Taint(t *testing.T) {
+	var before, after ec2.Instance
+	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(resName, &before),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
@@ -1744,12 +1829,44 @@ func TestAccAWSInstance_creditSpecificationT3_updateCpuCredits(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits_t3(acctest.RandInt()),
+				Config: testAccInstanceConfig_creditSpecification_standardCpuCredits_t3(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &after),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "standard"),
+				),
+				Taint: []string{resName},
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_creditSpecification_unlimitedCpuCredits_t2Tot3Taint(t *testing.T) {
+	var before, after ec2.Instance
+	resName := "aws_instance.foo"
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resName, &before),
+					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
+					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
+				),
+			},
+			{
+				Config: testAccInstanceConfig_creditSpecification_unlimitedCpuCredits_t3(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(resName, &after),
 					resource.TestCheckResourceAttr(resName, "credit_specification.#", "1"),
 					resource.TestCheckResourceAttr(resName, "credit_specification.0.cpu_credits", "unlimited"),
 				),
+				Taint: []string{resName},
 			},
 		},
 	})
